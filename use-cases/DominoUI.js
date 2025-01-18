@@ -72,15 +72,20 @@ class DominoGame {
   }
 
   determineStartingPlayer() {
-    const doubles = [6, 5, 4, 3, 2, 1, 0];
-    for (const double of doubles) {
+    const doublePieces = [6, 5, 4, 3, 2, 1, 0];
+
+    for (const doublePiece of doublePieces) {
       for (let i = 0; i < this.players.length; i++) {
-        if (this.players[i].hasPiece(double, double)) {
-          return i;
+        const pieceIndex = this.players[i].getPieces()
+          .findIndex(piece => piece.left === doublePiece && piece.right === doublePiece);
+
+        if (pieceIndex !== -1) {
+          return { playerIndex: i, pieceIndex };
         }
       }
     }
-    return 0; 
+
+    return { playerIndex: 0, pieceIndex: -1 };
   }
 
   playPiece(playerIndex, pieceIndex, side) {
@@ -163,6 +168,7 @@ class DominoUI {
     this.playerBoard = document.querySelector('#player_board');
     this.statusGame = document.querySelector('#status_game');
     this.placar = document.querySelector('#placar');
+    this.comemoracao = document.querySelector('#comemoracao');
   }
 
   displayBoard() {
@@ -171,13 +177,19 @@ class DominoUI {
 
   drawFinalBoard() {
     this.playerBoard.innerHTML = '';
+
     this.game.board.forEach(entry => {
-      console.log(entry)
       const pieceElement = document.createElement('div');
       pieceElement.style.backgroundImage = `url("../domino-icon/${entry.piece.left} ${entry.piece.right}.png")`;
       pieceElement.classList.add('piece', entry.side);
-      pieceElement.innerHTML = entry.piece.toString();
 
+      if (entry.piece.left === entry.piece.right) {
+        pieceElement.classList.add('piece__vertical');
+      } else {
+        pieceElement.classList.add('piece__horizontal');
+      }
+      
+      pieceElement.innerHTML = entry.piece.toString();
       this.playerBoard.appendChild(pieceElement)
     })
   }
@@ -214,12 +226,19 @@ class DominoUI {
   playTurn(playerIndex, pieceIndex, side) {
     const player = this.game.players[playerIndex];
     const piece = player.getPieces()[pieceIndex];
+
+    const sideText = {
+      'left': 'esquerda',
+      'right': 'direita',
+      'middle': 'meio'
+    }
+
+    const preposition = sideText[side] === 'meio' ? 'no' : 'na';
     
     if (this.game.playPiece(playerIndex, pieceIndex, side)) {
-      // console.log(`${player.name} jogou ${piece} na ${side}`);
       const liElement = document.createElement('li');
-      liElement.innerHTML = `<b>${player.name}</b> jogou <b>${piece}</b> na ${side === 'left' ? 'esquerda' : 'direita'}`;
-      this.statusGame.appendChild(liElement);
+      liElement.innerHTML = `<b>${player.name}</b> jogou <b>${piece}</b> ${preposition} ${sideText[side]}`;
+      this.statusGame.prepend(liElement);
 
       this.displayBoard();
       this.displayPlayerPieces(playerIndex);
@@ -250,9 +269,15 @@ class DominoUI {
     this.displayBoard();
     this.getInitalPlayerPieces();
   
-    const startingPlayer = this.game.determineStartingPlayer();
-    this.game.currentPlayer = startingPlayer;
-    console.log(`O jogador inicial é ${this.game.players[startingPlayer].name}`);
+    const { playerIndex, pieceIndex } = this.game.determineStartingPlayer();
+    this.game.currentPlayer = playerIndex;
+    console.log(`O jogador inicial é ${this.game.players[playerIndex].name}`);
+
+    if (pieceIndex !== -1) {
+      this.playTurn(playerIndex, pieceIndex, 'middle');
+      this.drawFinalBoard();
+      await this.delay(500); // Delay de 3 segundos
+    }
   
     // Simulação de jogadas
     let noMovesCount = 0;
@@ -288,13 +313,27 @@ class DominoUI {
     }
   
     const winnerIndex = this.game.getWinner();
+    const img = document.createElement('img');
+
     if (winnerIndex !== null) {
       console.log(`O vencedor é ${this.game.players[winnerIndex].name} 🏆🏆🏆`);
-      this.placar.innerHTML = `O VENCEDOR É:  🏆🏆🏆<b>${this.game.players[winnerIndex].name}</b> 🏆🏆🏆`
+      this.placar.innerHTML = `O VENCEDOR É: <br /> 🏆🏆🏆<b>${this.game.players[winnerIndex].name}</b> 🏆🏆🏆`
+
+      const playerComemoracao = {
+        0: '../domino-icon/maximouz.webp',
+        1: '../domino-icon/tome-tome.webp',
+        2: '../domino-icon/cuida.webp',
+        3: '../domino-icon/cuida.webp'
+      }
+      
+      img.src = `${playerComemoracao[winnerIndex]}`;
     } else {
       console.log('O jogo terminou em empate');
       this.placar.innerHTML = 'O jogo fechou ❌❌❌'
+      img.src = `../domino-icon/itsover.webp`;
     }
+
+    this.comemoracao.appendChild(img);
   }
   
   delay(ms) {
