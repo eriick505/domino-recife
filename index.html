@@ -17,6 +17,13 @@
           <h2>FEB ONLINE</h2>
         </div>
 
+        <div class="col-12">
+          <div>
+            <h4>Dorme</h4>
+            <div class="dorme d-flex" id="dorme"></div>
+          </div>
+        </div>
+
         <div class="col-12 my-5">
           <div class="board" id="player_board">
           </div>
@@ -28,21 +35,34 @@
         </div>
       </div>
 
-      <div class="row justify-content-between mt-4">
-        <div class="col-5">
-          <table class="table">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Players</th>
-                <th scope="col">Pedras</th>
-              </tr>
-            </thead>
-            <tbody id="players_table">
-            </tbody>
-          </table>
+      <div class="row">
+        <div class="col-3">
+          <div class="player_board" id="player0">
+            <div class="player_name text-center border py-2"></div>
+            <div class="player_pieces d-flex justify-content-center py-3"></div>
+          </div>
         </div>
-        
+        <div class="col-3">
+          <div class="player_board" id="player1">
+            <div class="player_name text-center border py-2"></div>
+            <div class="player_pieces d-flex justify-content-center py-3"></div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="player_board" id="player2">
+            <div class="player_name text-center border py-2"></div>
+            <div class="player_pieces d-flex justify-content-center py-3"></div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="player_board" id="player3">
+            <div class="player_name text-center border py-2"></div>
+            <div class="player_pieces d-flex justify-content-center py-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row justify-content-between mt-4">
         <div class="col-5">
           <h3>Historico de jogadas</h3>
           <ul id="status_game" class="status__game"></ul>

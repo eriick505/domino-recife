@@ -98,7 +98,10 @@ class DominoGame {
       this.board.push({ piece, side: 'middle' });
       this.firstMove = false;
     } else if (this.canPlayPiece(piece, side)) {
-      const endPiece = side === 'left' ? this.board[0].piece : this.board[this.board.length - 1].piece;
+      const endPiece = side === 'left' 
+        ? this.board[0].piece 
+        : this.board[this.board.length - 1].piece;
+      
       if (side === 'left') {
         if (piece.right === endPiece.left) {
           this.board.unshift({ piece, side: 'left' });
@@ -121,6 +124,7 @@ class DominoGame {
     } else {
       return false;
     }
+
     player.removePiece(pieceIndex);
     this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
     return true;
@@ -153,7 +157,10 @@ class DominoGame {
 
   getWinner() {
     if (this.isGameOver()) {
-      const scores = this.players.map(player => player.getPieces().reduce((sum, piece) => sum + piece.left + piece.right, 0));
+      const scores = this.players
+        .map(player => player.getPieces()
+        .reduce((sum, piece) => sum + piece.left + piece.right, 0));
+
       const minScore = Math.min(...scores);
       return scores.indexOf(minScore);
     }
@@ -169,64 +176,64 @@ class DominoUI {
     this.statusGame = document.querySelector('#status_game');
     this.placar = document.querySelector('#placar');
     this.comemoracao = document.querySelector('#comemoracao');
+    this.dorme = document.querySelector('#dorme');
   }
 
   displayBoard() {
     console.log('Mesa:', this.game.board.map(entry => entry.piece.toString()).join(' '));
   }
 
+  drawDorme() {
+    this.dorme.innerHTML = '';
+    this.game.standby.forEach(piece => {
+      const pieceElement = this.drawPieceElement(piece);
+      this.dorme.appendChild(pieceElement);
+    })
+  }
+
+  getUrlImagePiece(piece) {
+    return `../domino-icon/${piece.left} ${piece.right}.png`;
+  }
+
+  drawPieceElement(piece) {
+    const pieceElement = document.createElement('div');
+    const equalSides = piece.left === piece.right;
+
+    pieceElement.style.backgroundImage = `url("${this.getUrlImagePiece(piece)}")`;
+    pieceElement.classList.add('piece');
+    pieceElement.classList.add(equalSides ? 'piece__vertical' : 'piece__horizontal');
+    pieceElement.innerHTML = piece.toString();
+    
+    return pieceElement
+  }
+
   drawFinalBoard() {
     this.playerBoard.innerHTML = '';
 
     this.game.board.forEach(entry => {
-      const pieceElement = document.createElement('div');
-      pieceElement.style.backgroundImage = `url("../domino-icon/${entry.piece.left} ${entry.piece.right}.png")`;
-      pieceElement.classList.add('piece', entry.side);
+      const pieceElement = this.drawPieceElement(entry.piece)
 
-      if (entry.piece.left === entry.piece.right) {
-        pieceElement.classList.add('piece__vertical');
-      } else {
-        pieceElement.classList.add('piece__horizontal');
-      }
-      
-      pieceElement.innerHTML = entry.piece.toString();
       this.playerBoard.appendChild(pieceElement)
     })
   }
 
-  playerPieces(playerIndex) {
-    return {
-      playerName: this.game.players[playerIndex].name,
-      playerPieces: this.game.players[playerIndex].getPieces()
-    };
+  drawPlayersBoard() {
+    this.game.players.forEach((player, playerIndex) => {
+      const playerBoardEl = document.querySelector(`#player${playerIndex}`);
+      const playerNameEl = playerBoardEl.querySelector('.player_name')
+      const playerPiecesEl = playerBoardEl.querySelector('.player_pieces')
+      
+      playerNameEl.innerHTML = player.name;
+
+      playerPiecesEl.innerHTML = '';
+      player.getPieces().forEach(piece => {
+        const pieceElement = this.drawPieceElement(piece)
+        playerPiecesEl.appendChild(pieceElement)
+      })
+    })
   }
 
-  getInitalPlayerPieces() {
-    this.playersTable.innerHTML = '';
-    this.game.players.forEach((_, playerIndex) => {
-      const { playerName, playerPieces } = this.playerPieces(playerIndex)
-
-      const trElement = document.createElement('tr');
-      trElement.innerHTML = `
-        <th scope="row">${playerIndex}</th>
-        <td>${playerName}</td>
-        <td>${playerPieces}</td>
-      `;
-
-      this.playersTable.appendChild(trElement);
-    });
-  }
-
-  displayPlayerPieces(playerIndex) {
-    const { playerName, playerPieces } = this.playerPieces(playerIndex)
-
-    // console.log(`${playerIndex} - ${playerName}'s pieces:`, playerPieces);
-  }
-
-  playTurn(playerIndex, pieceIndex, side) {
-    const player = this.game.players[playerIndex];
-    const piece = player.getPieces()[pieceIndex];
-
+  playHistory(player, piece, side) {
     const sideText = {
       'left': 'esquerda',
       'right': 'direita',
@@ -234,15 +241,21 @@ class DominoUI {
     }
 
     const preposition = sideText[side] === 'meio' ? 'no' : 'na';
+    const liElement = document.createElement('li');
+
+    liElement.innerHTML = `<b>${player.name}</b> jogou <b>${piece}</b> ${preposition} ${sideText[side]}`;
+    this.statusGame.prepend(liElement);
+  }
+
+  playTurn(playerIndex, pieceIndex, side) {
+    const player = this.game.players[playerIndex];
+    const piece = player.getPieces()[pieceIndex];
     
     if (this.game.playPiece(playerIndex, pieceIndex, side)) {
-      const liElement = document.createElement('li');
-      liElement.innerHTML = `<b>${player.name}</b> jogou <b>${piece}</b> ${preposition} ${sideText[side]}`;
-      this.statusGame.prepend(liElement);
-
+      this.playHistory(player, piece, side);
+      this.drawDorme();
       this.displayBoard();
-      this.displayPlayerPieces(playerIndex);
-      this.getInitalPlayerPieces();
+      this.drawPlayersBoard();
       return true;
     } else {
       // console.log(`${player.name} não pode jogar ${piece} na ${side}`);
@@ -257,17 +270,16 @@ class DominoUI {
 
   drawPiece(playerIndex) {
     const piece = this.game.drawPiece(playerIndex);
-    if (piece) {
-      console.log(`${this.game.players[playerIndex].name} comprou ${piece}`);
-      this.displayPlayerPieces(playerIndex);
-    } else {
-      console.log(`Não há mais peças para comprar`);
-    }
+
+    if(!piece) return console.log(`Não há mais peças para comprar`);
+
+    console.log(`${this.game.players[playerIndex].name} comprou ${piece}`);
   }
 
   async simulateGame() {
     this.displayBoard();
-    this.getInitalPlayerPieces();
+    this.drawPlayersBoard();
+    this.drawDorme();
   
     const { playerIndex, pieceIndex } = this.game.determineStartingPlayer();
     this.game.currentPlayer = playerIndex;
@@ -276,7 +288,7 @@ class DominoUI {
     if (pieceIndex !== -1) {
       this.playTurn(playerIndex, pieceIndex, 'middle');
       this.drawFinalBoard();
-      await this.delay(500); // Delay de 3 segundos
+      await this.delay(900); // Delay de 3 segundos
     }
   
     // Simulação de jogadas
@@ -291,13 +303,13 @@ class DominoUI {
           played = true;
           noMovesCount = 0; // Reset noMovesCount if a move is made
           this.drawFinalBoard();
-          await this.delay(500);
+          await this.delay(900);
           break;
         } else if (this.playTurn(this.game.currentPlayer, i, 'left')) {
           played = true;
           noMovesCount = 0; // Reset noMovesCount if a move is made
           this.drawFinalBoard();
-          await this.delay(500);
+          await this.delay(900);
           break;
         }
       }
