@@ -1,77 +1,1251 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dominó Recife - Motor de Layout Final</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Estilos CSS -->
+    <style>
+      /* Reset e Configuração Base */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden; /* Remove scrollbars */
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
 
-    <link rel="stylesheet" href="./styles.css">
+      /* Container Principal (Mesa de Jogo) */
+      #game-container {
+        width: 100%;
+        height: 100%;
+        background-color: #0a6c2f; /* Verde de mesa de feltro */
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.1) 1px,
+          transparent 1px
+        );
+        background-size: 20px 20px;
+        position: relative;
+        color: white;
+      }
 
-    <title>Dominó Recife</title>
+      /* Painéis Flutuantes */
+      .overlay-panel {
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(5px);
+        padding: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        z-index: 10;
+      }
+
+      /* Placar da Partida (Estilo Versus) */
+      #scoreboard-overlay {
+        top: 20px;
+        left: 20px;
+        width: auto;
+        padding: 10px 15px;
+        text-align: center;
+      }
+      #scoreboard-overlay h4 {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+        padding-bottom: 8px; /* Espaço para a linha */
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5); /* Linha divisória */
+      }
+      #scoreboard {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        font-weight: bold;
+      }
+      .team-names-scoreboard {
+        display: flex;
+        flex-direction: column; /* Empilha os nomes */
+        font-size: 0.8rem;
+        line-height: 1.2;
+        opacity: 0.9;
+        text-align: center;
+      }
+      .score-number {
+        font-size: 1.8rem;
+      }
+      .versus-separator {
+        font-size: 1.5rem;
+        opacity: 0.7;
+      }
+
+      /* Mãos dos Jogadores */
+      .player-hand-container {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 5;
+        text-align: center;
+      }
+      .player_name {
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 2px 10px;
+        border-radius: 5px;
+        font-size: 0.9rem;
+      }
+      .player_team {
+        font-size: 0.7rem;
+        opacity: 0.7;
+        margin-top: 2px;
+        margin-bottom: 5px;
+      }
+      .player_pieces {
+        display: flex;
+        gap: 5px;
+        min-height: 50px;
+      }
+
+      #player0-container {
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+      }
+      #player2-container {
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+      }
+      #player1-container {
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 60%;
+      }
+      #player1-container .player_pieces {
+        flex-direction: column;
+      }
+      #player3-container {
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 60%;
+      }
+      #player3-container .player_pieces {
+        flex-direction: column;
+      }
+
+      /* Mesa Central com Canvas */
+      #game_board_canvas {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      /* Peças (agora apenas para as mãos dos jogadores) */
+      .piece-in-hand {
+        background-color: #fdfdfd;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2),
+          inset 0 1px 1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        padding: 4px;
+        gap: 3px;
+      }
+      .piece-in-hand.vertical {
+        width: 36px;
+        height: 72px;
+        flex-direction: column;
+      }
+      .piece-in-hand.horizontal {
+        width: 72px;
+        height: 36px;
+        flex-direction: row;
+      }
+
+      .piece-half {
+        flex: 1;
+        position: relative;
+        display: grid;
+        padding: 3px;
+      }
+      .piece-in-hand.vertical .piece-half:first-child {
+        border-bottom: 1px solid #ccc;
+      }
+      .piece-in-hand.horizontal .piece-half:first-child {
+        border-right: 1px solid #ccc;
+      }
+
+      .pip {
+        width: 6px;
+        height: 6px;
+        background-color: #333;
+        border-radius: 50%;
+        justify-self: center;
+        align-self: center;
+      }
+
+      /* Padrões de Pips com Grid */
+      .pips-1 {
+        grid-template-areas: ". . ." ". a ." ". . .";
+      }
+      .pips-2 {
+        grid-template-areas: "a . ." ". . ." ". . b";
+      }
+      .pips-3 {
+        grid-template-areas: "a . ." ". b ." ". . c";
+      }
+      .pips-4 {
+        grid-template-areas: "a . b" ". . ." "c . d";
+      }
+      .pips-5 {
+        grid-template-areas: "a . b" ". c ." "d . e";
+      }
+      .pips-6 {
+        grid-template-areas: "a . b" "c . d" "e . f";
+      }
+
+      .pips-1 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-2 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-2 .pip:nth-child(2) {
+        grid-area: b;
+      }
+      .pips-3 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-3 .pip:nth-child(2) {
+        grid-area: b;
+      }
+      .pips-3 .pip:nth-child(3) {
+        grid-area: c;
+      }
+      .pips-4 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-4 .pip:nth-child(2) {
+        grid-area: b;
+      }
+      .pips-4 .pip:nth-child(3) {
+        grid-area: c;
+      }
+      .pips-4 .pip:nth-child(4) {
+        grid-area: d;
+      }
+      .pips-5 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-5 .pip:nth-child(2) {
+        grid-area: b;
+      }
+      .pips-5 .pip:nth-child(3) {
+        grid-area: c;
+      }
+      .pips-5 .pip:nth-child(4) {
+        grid-area: d;
+      }
+      .pips-5 .pip:nth-child(5) {
+        grid-area: e;
+      }
+      .pips-6 .pip:nth-child(1) {
+        grid-area: a;
+      }
+      .pips-6 .pip:nth-child(2) {
+        grid-area: b;
+      }
+      .pips-6 .pip:nth-child(3) {
+        grid-area: c;
+      }
+      .pips-6 .pip:nth-child(4) {
+        grid-area: d;
+      }
+      .pips-6 .pip:nth-child(5) {
+        grid-area: e;
+      }
+      .pips-6 .pip:nth-child(6) {
+        grid-area: f;
+      }
+
+      /* Painéis de Informação */
+      #dorme-overlay {
+        bottom: 20px;
+        left: 20px;
+      }
+      #history-overlay {
+        bottom: 20px;
+        right: 20px;
+        width: 250px;
+      }
+      .info-box h5 {
+        font-size: 1rem;
+        margin-bottom: 5px;
+        text-align: center;
+      }
+      .dorme {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+      }
+      #placar_rodada {
+        text-align: center;
+        font-weight: bold;
+      }
+      .status__game {
+        list-style: none;
+        padding: 0;
+        height: 100px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+      }
+      .status__game li {
+        padding: 2px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Modal de Vitória */
+      .modal-overlay {
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background-color: #fff;
+        color: #333;
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+        max-width: 500px;
+      }
+      .modal-content h2 {
+        font-size: 3rem;
+        color: #28a745;
+        margin-bottom: 10px;
+      }
+      .modal-content p {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+      }
+      .modal-content button {
+        margin-top: 20px;
+        padding: 10px 25px;
+        border: none;
+        background-color: #28a745;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: bold;
+        transition: background-color 0.2s;
+      }
+      .modal-content button:hover {
+        background-color: #218838;
+      }
+    </style>
   </head>
   <body>
-    <div class="container">
-      <div class="row">
-        <div class="col-12 py-3 text-center">
-          <h2>FEB ONLINE</h2>
-        </div>
-
-        <div class="col-12">
-          <div>
-            <h4>Dorme</h4>
-            <div class="dorme d-flex" id="dorme"></div>
-          </div>
-        </div>
-
-        <div class="col-12 my-5">
-          <div class="board" id="player_board">
-          </div>
-        </div>
-
-        <div class="col-12 text-center">
-          <div id="placar"></div>
-          <div id="comemoracao"></div>
+    <div id="game-container">
+      <div id="scoreboard-overlay" class="overlay-panel">
+        <h4>Placar da Partida</h4>
+        <div id="scoreboard">
+          <!-- Content injected by JS -->
         </div>
       </div>
 
-      <div class="row">
-        <div class="col-3">
-          <div class="player_board" id="player0">
-            <div class="player_name text-center border py-2"></div>
-            <div class="player_pieces d-flex justify-content-center py-3"></div>
-          </div>
-        </div>
-        <div class="col-3">
-          <div class="player_board" id="player1">
-            <div class="player_name text-center border py-2"></div>
-            <div class="player_pieces d-flex justify-content-center py-3"></div>
-          </div>
-        </div>
-        <div class="col-3">
-          <div class="player_board" id="player2">
-            <div class="player_name text-center border py-2"></div>
-            <div class="player_pieces d-flex justify-content-center py-3"></div>
-          </div>
-        </div>
-        <div class="col-3">
-          <div class="player_board" id="player3">
-            <div class="player_name text-center border py-2"></div>
-            <div class="player_pieces d-flex justify-content-center py-3"></div>
-          </div>
+      <div id="player0-container" class="player-hand-container">
+        <div id="player0_name" class="player_name"></div>
+        <div id="player0_team" class="player_team"></div>
+        <div id="player0_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player1-container" class="player-hand-container">
+        <div id="player1_name" class="player_name"></div>
+        <div id="player1_team" class="player_team"></div>
+        <div id="player1_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player2-container" class="player-hand-container">
+        <div id="player2_name" class="player_name"></div>
+        <div id="player2_team" class="player_team"></div>
+        <div id="player2_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player3-container" class="player-hand-container">
+        <div id="player3_name" class="player_name"></div>
+        <div id="player3_team" class="player_team"></div>
+        <div id="player3_pieces" class="player_pieces"></div>
+      </div>
+
+      <canvas id="game_board_canvas"></canvas>
+
+      <div id="dorme-overlay" class="overlay-panel">
+        <div class="info-box">
+          <h5>Dorme</h5>
+          <div class="dorme" id="dorme"></div>
         </div>
       </div>
 
-      <div class="row justify-content-between mt-4">
-        <div class="col-5">
-          <h3>Historico de jogadas</h3>
+      <div id="history-overlay" class="overlay-panel">
+        <div class="info-box">
+          <h5>Status da Rodada</h5>
+          <div id="placar_rodada">Aguardando início...</div>
+        </div>
+        <div class="info-box mt-2">
+          <h5>Histórico</h5>
           <ul id="status_game" class="status__game"></ul>
         </div>
-
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script src="main.js" type="module"></script>
+    <!-- Modal de Vitória -->
+    <div id="victory-modal" class="modal-overlay">
+      <div id="victory-modal-content" class="modal-content">
+        <!-- Content will be injected by JavaScript -->
+      </div>
+    </div>
+
+    <script type="module">
+      // --- DominoPiece.js ---
+      class DominoPiece {
+        constructor(left, right) {
+          this.left = left;
+          this.right = right;
+        }
+        toString() {
+          return `[${this.left}|${this.right}]`;
+        }
+      }
+
+      // --- Player.js ---
+      class Player {
+        constructor(name) {
+          this.name = name;
+          this.pieces = [];
+        }
+        addPiece(piece) {
+          this.pieces.push(piece);
+        }
+        removePiece(index) {
+          return this.pieces.splice(index, 1)[0];
+        }
+        getPieces() {
+          return this.pieces;
+        }
+      }
+
+      // --- DominoGame.js ---
+      class DominoGame {
+        constructor(playerNames) {
+          this.players = playerNames.map((name) => new Player(name));
+          this.teamNames = [
+            `Dupla 1 (${this.players[0].name} & ${this.players[2].name})`,
+            `Dupla 2 (${this.players[1].name} & ${this.players[3].name})`,
+          ];
+          this.scores = [0, 0];
+          this.targetScore = 1;
+          this.firstPiece = null;
+          this.startNewRound();
+        }
+
+        startNewRound() {
+          this.pieces = this.createDominoSet();
+          this.standby = [];
+          this.board = [];
+          this.firstPiece = null;
+          this.players.forEach((p) => (p.pieces = []));
+          this.currentPlayer = 0;
+          this.firstMove = true;
+          this.consecutivePasses = 0;
+          this.distributePieces();
+        }
+
+        createDominoSet() {
+          const pieces = [];
+          for (let i = 0; i <= 6; i++) {
+            for (let j = i; j <= 6; j++) {
+              pieces.push(new DominoPiece(i, j));
+            }
+          }
+          return pieces;
+        }
+
+        shuffle(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+        }
+
+        distributePieces() {
+          this.shuffle(this.pieces);
+          for (let i = 0; i < 24; i++)
+            this.players[i % 4].addPiece(this.pieces[i]);
+          for (let i = 24; i < this.pieces.length; i++)
+            this.standby.push(this.pieces[i]);
+        }
+
+        determineStartingPlayer() {
+          const doubles = [6, 5, 4, 3, 2, 1, 0];
+          for (const double of doubles) {
+            for (let i = 0; i < this.players.length; i++) {
+              const pieceIndex = this.players[i]
+                .getPieces()
+                .findIndex((p) => p.left === double && p.right === double);
+              if (pieceIndex !== -1)
+                return { playerIndex: i, pieceIndex: pieceIndex };
+            }
+          }
+          return { playerIndex: 0, pieceIndex: 0 };
+        }
+
+        playPiece(playerIndex, pieceIndex, side) {
+          const player = this.players[playerIndex];
+          const pieceToPlay = player.getPieces()[pieceIndex];
+          const pieceCopy = new DominoPiece(
+            pieceToPlay.left,
+            pieceToPlay.right
+          );
+
+          if (this.firstMove) {
+            this.board.push(pieceCopy);
+            this.firstPiece = pieceCopy;
+            this.firstMove = false;
+          } else {
+            const leftEndValue = this.board[0].left;
+            const rightEndValue = this.board[this.board.length - 1].right;
+
+            if (side === "left") {
+              if (pieceCopy.right === leftEndValue) {
+                // No flip needed
+              } else if (pieceCopy.left === leftEndValue) {
+                [pieceCopy.left, pieceCopy.right] = [
+                  pieceCopy.right,
+                  pieceCopy.left,
+                ];
+              } else return false;
+              this.board.unshift(pieceCopy);
+            } else if (side === "right") {
+              if (pieceCopy.left === rightEndValue) {
+                // No flip needed
+              } else if (pieceCopy.right === rightEndValue) {
+                [pieceCopy.left, pieceCopy.right] = [
+                  pieceCopy.right,
+                  pieceCopy.left,
+                ];
+              } else return false;
+              this.board.push(pieceCopy);
+            } else return false;
+          }
+
+          player.removePiece(pieceIndex);
+          this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+          this.consecutivePasses = 0;
+          return true;
+        }
+
+        canPlayOnBoard(piece) {
+          if (this.board.length === 0)
+            return { canPlay: true, sides: ["right"] };
+          const leftEnd = this.board[0].left;
+          const rightEnd = this.board[this.board.length - 1].right;
+          const possibleSides = [];
+          if (piece.left === leftEnd || piece.right === leftEnd)
+            possibleSides.push("left");
+          if (piece.left === rightEnd || piece.right === rightEnd)
+            possibleSides.push("right");
+          return { canPlay: possibleSides.length > 0, sides: possibleSides };
+        }
+
+        passTurn() {
+          this.consecutivePasses++;
+          this.currentPlayer = (this.currentPlayer + 1) % 4;
+        }
+
+        isRoundOver() {
+          if (this.players.some((player) => player.getPieces().length === 0))
+            return true;
+          if (this.consecutivePasses >= 4) return true;
+          return false;
+        }
+
+        getRoundWinnerInfo() {
+          if (!this.isRoundOver()) return null;
+
+          let winnerPlayerIndex = this.players.findIndex(
+            (p) => p.getPieces().length === 0
+          );
+
+          if (winnerPlayerIndex === -1) {
+            let teamScores = [0, 0];
+            this.players.forEach((player, index) => {
+              const teamIndex = index % 2;
+              teamScores[teamIndex] += player
+                .getPieces()
+                .reduce((sum, piece) => sum + piece.left + piece.right, 0);
+            });
+            winnerPlayerIndex = teamScores[0] <= teamScores[1] ? 0 : 1;
+          }
+
+          const winnerTeamIndex = winnerPlayerIndex % 2;
+          return {
+            teamIndex: winnerTeamIndex,
+            playerName: this.players[winnerPlayerIndex].name,
+          };
+        }
+
+        awardPoints(teamIndex, points) {
+          this.scores[teamIndex] += points;
+        }
+        isMatchOver() {
+          return this.scores.some((score) => score >= this.targetScore);
+        }
+      }
+
+      // --- DominoUI.js ---
+      class DominoUI {
+        constructor(game) {
+          this.game = game;
+          this.canvas = document.querySelector("#game_board_canvas");
+          this.ctx = this.canvas.getContext("2d");
+          this.statusGame = document.querySelector("#status_game");
+          this.placarRodada = document.querySelector("#placar_rodada");
+          this.scoreboardEl = document.querySelector("#scoreboard");
+          this.victoryModal = document.querySelector("#victory-modal");
+          this.victoryModalContent = document.querySelector(
+            "#victory-modal-content"
+          );
+
+          this.PIECE_WIDTH = 72;
+          this.PIECE_HEIGHT = 36;
+          this.PIP_RADIUS = 3;
+
+          this.resizeCanvas();
+          window.addEventListener("resize", () => this.resizeCanvas());
+        }
+
+        resizeCanvas() {
+          const container = document.getElementById("game-container");
+          this.canvas.width = container.clientWidth * 0.8;
+          this.canvas.height = container.clientHeight * 0.7;
+          this.drawGameBoard();
+        }
+
+        drawHandPieceElement(piece, isVertical = false) {
+          const pieceElement = document.createElement("div");
+          pieceElement.classList.add(
+            "piece-in-hand",
+            isVertical ? "vertical" : "horizontal"
+          );
+          const half1 = document.createElement("div");
+          half1.classList.add("piece-half", `pips-${piece.left}`);
+          const half2 = document.createElement("div");
+          half2.classList.add("piece-half", `pips-${piece.right}`);
+          for (let i = 0; i < piece.left; i++) {
+            const pip = document.createElement("div");
+            pip.classList.add("pip");
+            half1.appendChild(pip);
+          }
+          for (let i = 0; i < piece.right; i++) {
+            const pip = document.createElement("div");
+            pip.classList.add("pip");
+            half2.appendChild(pip);
+          }
+          pieceElement.appendChild(half1);
+          pieceElement.appendChild(half2);
+          return pieceElement;
+        }
+
+        drawCanvasPiece(piece, x, y, rotation = 0, swapPips = false) {
+          const ctx = this.ctx;
+          const w = this.PIECE_WIDTH;
+          const h = this.PIECE_HEIGHT;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate((rotation * Math.PI) / 180);
+
+          ctx.fillStyle = "#fdfdfd";
+          ctx.strokeStyle = "#ccc";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(-w / 2, -h / 2, w, h, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "#ccc";
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2 + 4);
+          ctx.lineTo(0, h / 2 - 4);
+          ctx.stroke();
+
+          // Se swapPips, inverte os eixos dos pips
+          this.drawPips(ctx, piece.left, -w / 4, 0, swapPips);
+          this.drawPips(ctx, piece.right, w / 4, 0, swapPips);
+
+          ctx.restore();
+        }
+
+        drawPips(ctx, value, centerX, centerY, swapAxes = false) {
+          ctx.fillStyle = "#333";
+          const positions = {
+            1: [[0, 0]],
+            2: [
+              [-0.25, -0.25],
+              [0.25, 0.25],
+            ],
+            3: [
+              [-0.25, -0.25],
+              [0, 0],
+              [0.25, 0.25],
+            ],
+            4: [
+              [-0.25, -0.25],
+              [-0.25, 0.25],
+              [0.25, -0.25],
+              [0.25, 0.25],
+            ],
+            5: [
+              [-0.25, -0.25],
+              [-0.25, 0.25],
+              [0, 0],
+              [0.25, -0.25],
+              [0.25, 0.25],
+            ],
+            6: [
+              [-0.25, -0.25],
+              [-0.25, 0],
+              [-0.25, 0.25],
+              [0.25, -0.25],
+              [0.25, 0],
+              [0.25, 0.25],
+            ],
+          };
+          if (positions[value]) {
+            const pipAreaSize = this.PIECE_HEIGHT * 0.6;
+            positions[value].forEach(([px, py]) => {
+              ctx.beginPath();
+              if (swapAxes) {
+                ctx.arc(
+                  centerX + py * pipAreaSize,
+                  centerY + px * pipAreaSize,
+                  this.PIP_RADIUS,
+                  0,
+                  2 * Math.PI
+                );
+              } else {
+                ctx.arc(
+                  centerX + px * pipAreaSize,
+                  centerY + py * pipAreaSize,
+                  this.PIP_RADIUS,
+                  0,
+                  2 * Math.PI
+                );
+              }
+              ctx.fill();
+            });
+          }
+        }
+
+        drawGameBoard() {
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          if (this.game.board.length === 0) return;
+
+          // Nova estrutura: boardState
+          this.boardState = [];
+
+          const PADDING = 40;
+          const firstPiece = this.game.firstPiece;
+          if (!firstPiece) return;
+          const firstPieceIndex = this.game.board.indexOf(firstPiece);
+
+          const centerX = this.canvas.width / 2;
+          const centerY = this.canvas.height / 2;
+
+          const isFirstDouble = firstPiece.left === firstPiece.right;
+          const firstRotation = isFirstDouble ? 90 : 0;
+          const isVertical = firstRotation % 180 !== 0;
+          const swapPips = isFirstDouble && isVertical;
+
+          // Adiciona estado da peça central
+          // Determina os lados visuais da peça central
+          let firstVisual = {};
+          if (isFirstDouble) {
+            // Dupla na vertical: topo = left, baixo = right
+            firstVisual = { top: firstPiece.left, bottom: firstPiece.right };
+          } else {
+            // Horizontal: esquerda = left, direita = right
+            firstVisual = { left: firstPiece.left, right: firstPiece.right };
+          }
+          this.boardState[firstPieceIndex] = {
+            piece: firstPiece,
+            x: centerX,
+            y: centerY,
+            rotation: firstRotation,
+            isVertical: isVertical,
+            swapPips: swapPips,
+            direction: "horizontal",
+            round: 0,
+            index: firstPieceIndex,
+            ...firstVisual,
+          };
+
+          // Caminho começa horizontal (direita/esquerda)
+          // Para a direita
+          let rightStartX = centerX;
+          let rightStartY = centerY;
+          let rightAngle = 0;
+          let rightOffset = isFirstDouble
+            ? this.PIECE_HEIGHT / 2
+            : this.PIECE_WIDTH / 2;
+          rightStartX += Math.cos((rightAngle * Math.PI) / 180) * rightOffset;
+          rightStartY += Math.sin((rightAngle * Math.PI) / 180) * rightOffset;
+
+          // Para a esquerda
+          let leftStartX = centerX;
+          let leftStartY = centerY;
+          let leftAngle = 180;
+          let leftOffset = isFirstDouble
+            ? this.PIECE_HEIGHT / 2
+            : this.PIECE_WIDTH / 2;
+          leftStartX += Math.cos((leftAngle * Math.PI) / 180) * leftOffset;
+          leftStartY += Math.sin((leftAngle * Math.PI) / 180) * leftOffset;
+
+          // Função para alternar direção ao chegar perto do limite
+          const processBranch = (
+            pieces,
+            startState,
+            boardIndexes,
+            isLeftBranch = false
+          ) => {
+            let layout = { ...startState };
+            let direction = "horizontal";
+            let growSign = 1;
+            let round = 1;
+            for (let i = 0; i < pieces.length; i++) {
+              let piece = pieces[i];
+              const boardIdx = boardIndexes[i];
+              const isDouble = piece.left === piece.right;
+              const lastState = layout;
+              const lastIsDouble =
+                lastState.piece.left === lastState.piece.right;
+
+              let lastRotation = lastState.angle + (lastIsDouble ? 90 : 0);
+              let currRotation = lastState.angle + (isDouble ? 90 : 0);
+
+              let lastW =
+                lastRotation % 180 === 0 ? this.PIECE_WIDTH : this.PIECE_HEIGHT;
+              let lastH =
+                lastRotation % 180 === 0 ? this.PIECE_HEIGHT : this.PIECE_WIDTH;
+              let currW =
+                currRotation % 180 === 0 ? this.PIECE_WIDTH : this.PIECE_HEIGHT;
+              let currH =
+                currRotation % 180 === 0 ? this.PIECE_HEIGHT : this.PIECE_WIDTH;
+
+              let moveX =
+                Math.cos((lastState.angle * Math.PI) / 180) *
+                (lastW / 2 + currW / 2);
+              let moveY =
+                Math.sin((lastState.angle * Math.PI) / 180) *
+                (lastH / 2 + currH / 2);
+
+              let nextX = lastState.x + moveX;
+              let nextY = lastState.y + moveY;
+              let pieceW =
+                currRotation % 180 === 0 ? this.PIECE_WIDTH : this.PIECE_HEIGHT;
+              let pieceH =
+                currRotation % 180 === 0 ? this.PIECE_HEIGHT : this.PIECE_WIDTH;
+
+              const minX = PADDING + pieceW / 2;
+              const maxX = this.canvas.width - PADDING - pieceW / 2;
+              const minY = PADDING + pieceH / 2;
+              const maxY = this.canvas.height - PADDING - pieceH / 2;
+
+              if (direction === "horizontal") {
+                if (nextX > maxX) {
+                  layout.angle = 90;
+                  direction = "vertical";
+                  growSign = 1;
+                  nextX = maxX;
+                  nextY = lastState.y + (lastH / 2 + currW / 2);
+                } else if (nextX < minX) {
+                  layout.angle = 270;
+                  direction = "vertical";
+                  growSign = -1;
+                  nextX = minX;
+                  nextY = lastState.y - (lastH / 2 + currW / 2);
+                }
+              } else {
+                if (nextY > maxY) {
+                  layout.angle = 180;
+                  direction = "horizontal";
+                  growSign = -1;
+                  nextY = maxY;
+                  nextX = lastState.x - (lastW / 2 + currH / 2);
+                } else if (nextY < minY) {
+                  layout.angle = 0;
+                  direction = "horizontal";
+                  growSign = 1;
+                  nextY = minY;
+                  nextX = lastState.x + (lastW / 2 + currH / 2);
+                }
+              }
+
+              layout.x = nextX;
+              layout.y = nextY;
+
+              // Refinamento: duplas sempre cruzam a direção do caminho
+              let rotation = layout.angle;
+              if (isDouble) {
+                if (direction === "horizontal") {
+                  rotation += 90;
+                }
+              }
+
+              // Ajuste: swapPips se for dupla E está na vertical
+              const isVertical = rotation % 180 !== 0;
+              const swapPips = isDouble && isVertical;
+
+              // --- ENCAIXE LÓGICO USANDO OS LADOS VISUAIS ---
+              // Descobre o valor do lado "de encaixe" da peça anterior
+              let prevSideValue;
+              let currSideValue;
+              let flip = false;
+              if (direction === "horizontal") {
+                if (!isLeftBranch) {
+                  // ramo da direita: encaixe é right do anterior com left do atual
+                  prevSideValue =
+                    lastState.right !== undefined
+                      ? lastState.right
+                      : lastState.bottom;
+                  currSideValue = piece.left;
+                  // Para a primeira peça do ramo da direita, use o valor right da peça central
+                  if (i === 0 && startState.right !== undefined) {
+                    prevSideValue = startState.right;
+                  }
+                  if (currSideValue !== prevSideValue) {
+                    piece = new DominoPiece(piece.right, piece.left);
+                    flip = true;
+                  }
+                } else {
+                  // ramo da esquerda: encaixe é left do anterior com left do atual
+                  prevSideValue =
+                    lastState.left !== undefined
+                      ? lastState.left
+                      : lastState.top;
+                  currSideValue = piece.left;
+                  // Para a primeira peça do ramo da esquerda, use o valor left da peça central
+                  if (i === 0 && startState.left !== undefined) {
+                    prevSideValue = startState.left;
+                  }
+                  // Se não encaixar, flipar
+                  if (currSideValue !== prevSideValue) {
+                    piece = new DominoPiece(piece.right, piece.left);
+                    flip = true;
+                  }
+                }
+              } else {
+                // encaixe vertical (igual para ambos os ramos)
+                prevSideValue =
+                  lastState.bottom !== undefined
+                    ? lastState.bottom
+                    : lastState.right;
+                currSideValue =
+                  piece.top !== undefined ? piece.top : piece.left;
+                if (currSideValue !== prevSideValue) {
+                  piece = new DominoPiece(piece.right, piece.left);
+                  flip = true;
+                }
+              }
+
+              // Determina os lados visuais da peça
+              let visual = {};
+              if (isDouble) {
+                visual = { top: piece.left, bottom: piece.right };
+              } else if (rotation % 360 === 0) {
+                visual = { left: piece.left, right: piece.right };
+              } else if (rotation % 360 === 180) {
+                visual = { left: piece.right, right: piece.left };
+              } else if (rotation % 360 === 90) {
+                visual = { top: piece.left, bottom: piece.right };
+              } else if (rotation % 360 === 270) {
+                visual = { top: piece.right, bottom: piece.left };
+              }
+
+              this.boardState[boardIdx] = {
+                piece: piece,
+                x: layout.x,
+                y: layout.y,
+                rotation: rotation,
+                isVertical: isVertical,
+                swapPips: swapPips,
+                direction: direction,
+                round: round,
+                index: boardIdx,
+                ...visual,
+                flip,
+              };
+
+              layout.piece = piece;
+              // Atualiza os extremos do layout para o próximo encaixe
+              if (!isLeftBranch) {
+                layout.right = visual.right;
+                layout.bottom = visual.bottom;
+                layout.left = undefined;
+                layout.top = undefined;
+              } else {
+                layout.left = visual.left;
+                layout.top = visual.top;
+                layout.right = undefined;
+                layout.bottom = undefined;
+              }
+              round++;
+            }
+          };
+
+          // Calcula os índices reais das peças na board
+          const rightBranchPieces = this.game.board.slice(firstPieceIndex + 1);
+          const rightBranchIndexes = Array.from(
+            { length: rightBranchPieces.length },
+            (_, i) => firstPieceIndex + 1 + i
+          );
+          processBranch.call(
+            this,
+            rightBranchPieces,
+            {
+              x: rightStartX,
+              y: rightStartY,
+              angle: rightAngle,
+              piece: firstPiece,
+              right:
+                this.boardState[firstPieceIndex]?.right ?? firstPiece.right,
+            },
+            rightBranchIndexes,
+            false // não é ramo da esquerda
+          );
+
+          const leftBranchPieces = this.game.board
+            .slice(0, firstPieceIndex)
+            .reverse();
+          const leftBranchIndexes = Array.from(
+            { length: leftBranchPieces.length },
+            (_, i) => firstPieceIndex - 1 - i
+          ).reverse();
+          processBranch.call(
+            this,
+            leftBranchPieces,
+            {
+              x: leftStartX,
+              y: leftStartY,
+              angle: leftAngle,
+              piece: firstPiece,
+              left: this.boardState[firstPieceIndex]?.left ?? firstPiece.left,
+            },
+            leftBranchIndexes,
+            true // é ramo da esquerda
+          );
+
+          // Desenha todas as peças usando boardState
+          for (let i = 0; i < this.game.board.length; i++) {
+            const state = this.boardState[i];
+            if (!state) continue;
+            this.drawCanvasPiece(
+              state.piece,
+              state.x,
+              state.y,
+              state.rotation,
+              state.swapPips
+            );
+          }
+        }
+
+        drawPlayersBoards() {
+          this.game.players.forEach((player, playerIndex) => {
+            const playerNameEl = document.querySelector(
+              `#player${playerIndex}_name`
+            );
+            const playerTeamEl = document.querySelector(
+              `#player${playerIndex}_team`
+            );
+            const playerPiecesEl = document.querySelector(
+              `#player${playerIndex}_pieces`
+            );
+
+            if (playerNameEl) playerNameEl.textContent = player.name;
+            if (playerTeamEl)
+              playerTeamEl.textContent = `Dupla ${(playerIndex % 2) + 1}`;
+            if (playerPiecesEl) {
+              playerPiecesEl.innerHTML = "";
+              const isVertical = playerIndex === 1 || playerIndex === 3;
+              player.getPieces().forEach((piece) => {
+                const pieceElement = this.drawHandPieceElement(
+                  piece,
+                  !isVertical
+                );
+                playerPiecesEl.appendChild(pieceElement);
+              });
+            }
+          });
+        }
+
+        updateDorme() {
+          const dormeEl = document.querySelector("#dorme");
+          dormeEl.innerHTML = "";
+          this.game.standby.forEach((piece) => {
+            const pieceElement = this.drawHandPieceElement(piece, true);
+            dormeEl.appendChild(pieceElement);
+          });
+        }
+
+        updateScoreboard() {
+          this.scoreboardEl.innerHTML = `
+                <div class="team-names-scoreboard">
+                    <span>${this.game.players[0].name}</span>
+                    <span>${this.game.players[2].name}</span>
+                </div>
+                <span class="score-number">${this.game.scores[0]}</span>
+                <span class="versus-separator">x</span>
+                <span class="score-number">${this.game.scores[1]}</span>
+                <div class="team-names-scoreboard">
+                    <span>${this.game.players[1].name}</span>
+                    <span>${this.game.players[3].name}</span>
+                </div>
+            `;
+        }
+
+        logHistory(message) {
+          const liElement = document.createElement("li");
+          liElement.innerHTML = message;
+          this.statusGame.prepend(liElement);
+        }
+
+        delay(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        async runRound() {
+          this.game.startNewRound();
+          this.drawPlayersBoards();
+          this.updateDorme();
+          this.drawGameBoard();
+          this.placarRodada.textContent = "Nova rodada...";
+
+          const { playerIndex, pieceIndex } =
+            this.game.determineStartingPlayer();
+          this.game.currentPlayer = playerIndex;
+          this.logHistory(
+            `Nova rodada! O jogador inicial é <b>${this.game.players[playerIndex].name}</b>.`
+          );
+          await this.delay(1500);
+
+          this.game.playPiece(playerIndex, pieceIndex, "right");
+          this.drawPlayersBoards();
+          this.drawGameBoard();
+          this.logHistory(
+            `<b>${
+              this.game.players[
+                this.game.currentPlayer - 1 === -1
+                  ? 3
+                  : this.game.currentPlayer - 1
+              ].name
+            }</b> jogou <b>${this.game.board[0].toString()}</b>.`
+          );
+          await this.delay(1000);
+
+          while (!this.game.isRoundOver()) {
+            const player = this.game.players[this.game.currentPlayer];
+            let played = false;
+            for (let i = 0; i < player.getPieces().length; i++) {
+              const piece = player.getPieces()[i];
+              const { canPlay, sides } = this.game.canPlayOnBoard(piece);
+              if (canPlay) {
+                this.game.playPiece(this.game.currentPlayer, i, sides[0]);
+                this.logHistory(
+                  `<b>${player.name}</b> jogou <b>${piece.toString()}</b>.`
+                );
+                played = true;
+                break;
+              }
+            }
+            if (!played) {
+              this.logHistory(`<b>${player.name}</b> passou a vez.`);
+              this.game.passTurn();
+            }
+            this.drawPlayersBoards();
+            this.drawGameBoard();
+            await this.delay(1000);
+          }
+        }
+
+        showVictoryModal(winnerTeamName) {
+          this.victoryModalContent.innerHTML = `
+                <h2>Vitória!</h2>
+                <p>A dupla vencedora é</p>
+                <h3>${winnerTeamName}</h3>
+                <button id="close-modal-btn">Fechar</button>
+            `;
+          this.victoryModal.style.display = "flex";
+
+          document
+            .getElementById("close-modal-btn")
+            .addEventListener("click", () => {
+              this.victoryModal.style.display = "none";
+            });
+        }
+
+        async startMatch() {
+          this.updateScoreboard();
+          while (!this.game.isMatchOver()) {
+            await this.runRound();
+            const winnerInfo = this.game.getRoundWinnerInfo();
+            if (winnerInfo) {
+              const winnerTeamName = this.game.teamNames[winnerInfo.teamIndex];
+              this.logHistory(
+                `<b>FIM DE RODADA!</b> A dupla <b>${winnerTeamName}</b> venceu.`
+              );
+              this.placarRodada.innerHTML = `A dupla <b>${winnerTeamName}</b> venceu a rodada!`;
+              this.game.awardPoints(winnerInfo.teamIndex, 1);
+              this.updateScoreboard();
+            }
+            await this.delay(4000);
+          }
+          const finalWinnerIndex =
+            this.game.scores[0] >= this.game.targetScore ? 0 : 1;
+          const finalWinnerName = this.game.teamNames[finalWinnerIndex];
+          this.placarRodada.innerHTML = `FIM DE PARTIDA!`;
+          this.showVictoryModal(finalWinnerName);
+        }
+      }
+
+      // --- main.js ---
+      const playerNames = [
+        "Teteuzinho",
+        "Palhaço Loko",
+        "João Prazeres",
+        "Vini Jr",
+      ];
+      const game = new DominoGame(playerNames);
+      const ui = new DominoUI(game);
+
+      ui.startMatch();
+    </script>
   </body>
 </html>
