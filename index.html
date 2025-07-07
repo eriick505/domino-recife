@@ -731,12 +731,12 @@
               [0.25, 0.25],
             ],
             6: [
-              [-0.25, -0.25],
-              [-0.25, 0],
-              [-0.25, 0.25],
-              [0.25, -0.25],
-              [0.25, 0],
-              [0.25, 0.25],
+              [-0.35, -0.35],
+              [-0.35, 0],
+              [-0.35, 0.35],
+              [0.35, -0.35],
+              [0.35, 0],
+              [0.35, 0.35],
             ],
           };
           if (positions[value]) {
@@ -809,25 +809,25 @@
           };
 
           // Caminho começa horizontal (direita/esquerda)
-          // Para a direita
+          // Para a direita - ajuste para eliminar gap
           let rightStartX = centerX;
           let rightStartY = centerY;
           let rightAngle = 0;
           let rightOffset = isFirstDouble
             ? this.PIECE_HEIGHT / 2
             : this.PIECE_WIDTH / 2;
-          rightStartX += Math.cos((rightAngle * Math.PI) / 180) * rightOffset;
-          rightStartY += Math.sin((rightAngle * Math.PI) / 180) * rightOffset;
+          // Ajuste: simplificar cálculo para eliminar espaçamento
+          rightStartX += rightOffset;
 
-          // Para a esquerda
+          // Para a esquerda - ajuste para eliminar gap
           let leftStartX = centerX;
           let leftStartY = centerY;
           let leftAngle = 180;
           let leftOffset = isFirstDouble
             ? this.PIECE_HEIGHT / 2
             : this.PIECE_WIDTH / 2;
-          leftStartX += Math.cos((leftAngle * Math.PI) / 180) * leftOffset;
-          leftStartY += Math.sin((leftAngle * Math.PI) / 180) * leftOffset;
+          // Ajuste: simplificar cálculo para eliminar espaçamento
+          leftStartX -= leftOffset;
 
           // Função para alternar direção ao chegar perto do limite
           const processBranch = (
@@ -860,12 +860,18 @@
               let currH =
                 currRotation % 180 === 0 ? this.PIECE_HEIGHT : this.PIECE_WIDTH;
 
-              let moveX =
-                Math.cos((lastState.angle * Math.PI) / 180) *
-                (lastW / 2 + currW / 2);
-              let moveY =
-                Math.sin((lastState.angle * Math.PI) / 180) *
-                (lastH / 2 + currH / 2);
+              // Corrigir o cálculo de movimento para eliminar gaps
+              let moveX, moveY;
+
+              if (i === 0) {
+                // Para a primeira peça de cada ramo, usar posição inicial sem gap
+                moveX = Math.cos((lastState.angle * Math.PI) / 180) * (currW / 2);
+                moveY = Math.sin((lastState.angle * Math.PI) / 180) * (currH / 2);
+              } else {
+                // Para peças subsequentes, usar cálculo normal
+                moveX = Math.cos((lastState.angle * Math.PI) / 180) * (lastW / 2 + currW / 2);
+                moveY = Math.sin((lastState.angle * Math.PI) / 180) * (lastH / 2 + currH / 2);
+              }
 
               let nextX = lastState.x + moveX;
               let nextY = lastState.y + moveY;
