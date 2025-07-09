@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dominó Recife - Multiplayer Online</title>
+
+    <!-- Estilos CSS -->
+		<link rel="stylesheet" href="./frontend/multiplayer-styles.css" />
+  </head>
+  <body>
+    <!-- Modal de entrada inicial -->
+    <div id="entry-modal" class="entry-modal-overlay">
+      <div class="entry-modal-content">
+        <h2>🎮 FEB🎉🎂🥳 - Online</h2>
+        
+        <!-- Tabs -->
+        <div class="tab-container">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="create">Criar Sala</button>
+            <button class="tab-btn" data-tab="join">Entrar na Sala</button>
+          </div>
+
+          <!-- Tab Criar Sala -->
+          <div id="create-tab" class="tab-content active">
+            <h3>🏠 Criar Nova Sala</h3>
+            <div class="form-group">
+              <label for="create-room-id">Nome da Sala:</label>
+              <input type="text" id="create-room-id" placeholder="Ex: TomaPoeNaBoca&FicaQuieto" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label for="create-player-name">Seu Nome:</label>
+              <input type="text" id="create-player-name" placeholder="Ex: João Prazeres" maxlength="15">
+            </div>
+            <button id="create-room-btn" class="action-btn create-btn">🎯 Criar Sala</button>
+          </div>
+
+          <!-- Tab Entrar na Sala -->
+          <div id="join-tab" class="tab-content">
+            <h3>🚪 Entrar em Sala Existente</h3>
+            <div class="form-group">
+              <label for="join-room-id">Nome da Sala:</label>
+              <input type="text" id="join-room-id" placeholder="Ex: TomaPoeNaBoca&FicaQuieto" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label for="join-player-name">Seu Nome:</label>
+              <input type="text" id="join-player-name" placeholder="Ex: Palhaço locco" maxlength="15">
+            </div>
+            <button id="join-room-btn" class="action-btn join-btn">🎮 Entrar na Sala</button>
+          </div>
+        </div>
+
+        <div class="connection-status">
+          <span id="connection-indicator">🔴 Desconectado</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botão flutuante para iniciar jogo (apenas para host) -->
+    <button id="start-game-btn" class="floating-start-btn" style="display: none;">
+      🚀 Iniciar Jogo
+    </button>
+
+    <!-- Botão de engrenagem para menu de opções -->
+    <div id="settings-menu-container">
+      <button id="settings-btn" title="Opções" class="settings-btn">
+        <span class="settings-icon">⚙️</span>
+      </button>
+      <div id="settings-dropdown" class="settings-dropdown" style="display: none;">
+        <button id="menu-restart-btn" class="menu-restart-btn" style="display: none;">🔄 Nova Rodada</button>
+        <button id="menu-leave-btn" class="menu-leave-btn">🚪 Sair do Jogo</button>
+      </div>
+    </div>
+
+    <div id="game-container">
+      <div id="scoreboard-overlay" class="overlay-panel">
+        <h4>Placar da Partida</h4>
+        <div id="scoreboard">
+          <!-- Content injected by JS -->
+        </div>
+      </div>
+
+      <div id="player0-container" class="player-hand-container">
+        <div id="player0_name" class="player_name"></div>
+        <div id="player0_team" class="player_team"></div>
+        <div id="player0_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player1-container" class="player-hand-container">
+        <div id="player1_name" class="player_name"></div>
+        <div id="player1_team" class="player_team"></div>
+        <div id="player1_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player2-container" class="player-hand-container">
+        <div id="player2_name" class="player_name"></div>
+        <div id="player2_team" class="player_team"></div>
+        <div id="player2_pieces" class="player_pieces"></div>
+      </div>
+      <div id="player3-container" class="player-hand-container">
+        <div id="player3_name" class="player_name"></div>
+        <div id="player3_team" class="player_team"></div>
+        <div id="player3_pieces" class="player_pieces"></div>
+      </div>
+
+      <canvas id="game_board_canvas"></canvas>
+
+      <button id="pass-turn-btn" onclick="multiplayerGame.passTurn()">Passar Vez</button>
+
+      <div id="dorme-overlay" class="overlay-panel">
+        <div class="info-box">
+          <h5>Dorme</h5>
+          <div class="dorme" id="dorme"></div>
+        </div>
+      </div>
+
+      <div id="history-overlay" class="overlay-panel">
+        <div class="round-status-box">
+          <h4>Status da Rodada</h4>
+          <div id="placar_rodada">Aguardando início...</div>
+        </div>
+        <div class="history-box">
+          <h4>Histórico</h4>
+          <ul id="status_game" class="status__game"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Vitória -->
+    <div id="victory-modal" class="modal-overlay">
+      <div id="victory-modal-content" class="modal-content">
+        <!-- Content will be injected by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script type="module" src="./frontend/multiplayer-main.js"></script>
+  </body>
+</html>
